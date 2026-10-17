@@ -37,12 +37,25 @@ export function validateCashfreeUrl(urlStr?: string | null): { valid: boolean; e
   }
 }
 
-export function getCashfreeLinkConfig(): CashfreeLinkConfig {
-  const link = (process.env.NEXT_PUBLIC_CASHFREE_PAYMENT_LINK || "").trim();
-  const payeeName = (process.env.NEXT_PUBLIC_PAYEE_NAME || "DIGITAL MARKETING").trim();
+export const DEFAULT_CASHFREE_LINK = "https://cfpe.me/krishnadas";
+export const DEFAULT_PAYEE_NAME = "DIGITAL MARKETING";
+
+export function getCashfreeLinkConfig(customLink?: string, customPayee?: string): CashfreeLinkConfig {
+  const linkCandidate = customLink || process.env.NEXT_PUBLIC_CASHFREE_PAYMENT_LINK;
+  const link = (linkCandidate && linkCandidate.trim()) ? linkCandidate.trim() : DEFAULT_CASHFREE_LINK;
+  const payeeCandidate = customPayee || process.env.NEXT_PUBLIC_PAYEE_NAME;
+  const payeeName = (payeeCandidate && payeeCandidate.trim()) ? payeeCandidate.trim() : DEFAULT_PAYEE_NAME;
 
   const validation = validateCashfreeUrl(link);
   if (!validation.valid) {
+    const fallbackValidation = validateCashfreeUrl(DEFAULT_CASHFREE_LINK);
+    if (fallbackValidation.valid) {
+      return {
+        link: DEFAULT_CASHFREE_LINK,
+        payeeName: DEFAULT_PAYEE_NAME,
+        isValid: true,
+      };
+    }
     return {
       link: "",
       payeeName,
