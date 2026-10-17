@@ -64,7 +64,7 @@
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/nodemailer": "^8.0.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
