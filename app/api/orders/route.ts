@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getCurrentUserOrThrow } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import {
   calculateOrderPricing,
   calculateSubOrderSplit,
@@ -11,7 +11,10 @@ import { getActiveSaleCampaign, getEffectivePrice } from "@/lib/pricing/sale";
 
 export async function GET(req: NextRequest) {
   try {
-    const currentUser = await getCurrentUserOrThrow();
+    const session = await auth();
+    const currentUser = session?.user?.id
+      ? await db.user.findUnique({ where: { id: session.user.id }, select: { id: true, role: true } })
+      : null;
 
     // Auto-cancel unpaid Cashfree orders older than 24 hours
     checkAndAutoCancelExpiredOrders().catch((e) => console.error(e));
@@ -23,9 +26,15 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    const userRole = currentUser.role;
-    if (userRole !== "ADMIN" && userRole !== "SUPER_ADMIN") {
+    if (currentUser && (currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN")) {
+      // Admin sees all
+    } else if (currentUser) {
       where.userId = currentUser.id;
+    } else {
+      const orderNumber = searchParams.get("orderNumber");
+      if (orderNumber) {
+        where.orderNumber = orderNumber;
+      }
     }
     if (status) {
       where.status = status;
@@ -100,9 +109,40 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const currentUser = await getCurrentUserOrThrow();
-
     const body = await req.json();
+    const session = await auth();
+    let currentUser: any = null;
+
+    if (session?.user?.id) {
+      currentUser = await db.user.findUnique({
+        where: { id: session.user.id },
+        select: { id: true, name: true, email: true, role: true, walletBalance: true },
+      });
+    }
+
+    if (!currentUser) {
+      const cleanPhone = (body.address?.phone || "").replace(/[^0-9]/g, "").slice(-10);
+      const guestEmail = (body.address?.email && body.address.email.includes("@"))
+        ? body.address.email.trim().toLowerCase()
+        : cleanPhone
+        ? `customer_${cleanPhone}@shopzen.local`
+        : "customer@shopzen.local";
+
+      currentUser = await db.user.findUnique({ where: { email: guestEmail } });
+      if (!currentUser) {
+        currentUser = await db.user.create({
+          data: {
+            email: guestEmail,
+            name: body.address?.name || "Customer",
+            phone: body.address?.phone || cleanPhone || null,
+            role: "CUSTOMER",
+            status: "ACTIVE",
+            emailVerified: true,
+            isActive: true,
+          },
+        });
+      }
+    }
     const {
       addressId,
       items: clientItems,

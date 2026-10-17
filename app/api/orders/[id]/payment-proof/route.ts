@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserOrThrow } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import fs from "fs";
@@ -35,11 +35,17 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const currentUser = await getCurrentUserOrThrow();
+    const session = await auth();
+    const currentUser = session?.user?.id
+      ? await db.user.findUnique({
+          where: { id: session.user.id },
+          select: { id: true, name: true, email: true, role: true },
+        })
+      : null;
     const { id: orderId } = await params;
 
-    // Rate limiting: max 1 submit per 10 seconds per user
-    const rateLimitKey = `${currentUser.id}-${orderId}`;
+    // Rate limiting: max 1 submit per 10 seconds
+    const rateLimitKey = `${currentUser?.id || "guest"}-${orderId}`;
     const lastSubmitTime = rateLimitMap.get(rateLimitKey) || 0;
     const now = Date.now();
     if (now - lastSubmitTime < 10_000) {
@@ -72,13 +78,15 @@ export async function POST(
       );
     }
 
-    const isOwner = order.userId === currentUser.id;
-    const isAdmin = currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN";
-    if (!isOwner && !isAdmin) {
-      return NextResponse.json(
-        { success: false, code: "FORBIDDEN", message: "Forbidden: You do not own this order" },
-        { status: 403 }
-      );
+    if (currentUser) {
+      const isOwner = order.userId === currentUser.id;
+      const isAdmin = currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN";
+      if (!isOwner && !isAdmin) {
+        return NextResponse.json(
+          { success: false, code: "FORBIDDEN", message: "Forbidden: You do not own this order" },
+          { status: 403 }
+        );
+      }
     }
 
     // Only allow for orders in PENDING_PAYMENT or resubmission
@@ -240,7 +248,7 @@ export async function POST(
           orderId: order.id,
           status: "PAYMENT_VERIFICATION_PENDING",
           note: `Payment proof submitted: UTR ${utr}, Amount ₹${amountPaid}`,
-          createdBy: currentUser.id,
+          createdBy: currentUser?.id || order.userId,
         },
       });
     });
@@ -248,7 +256,7 @@ export async function POST(
     rateLimitMap.set(rateLimitKey, Date.now());
 
     // 7. Dispatch background emails
-    const customerEmail = order.user?.email || currentUser.email;
+    const customerEmail = order.user?.email || currentUser?.email;
     if (customerEmail) {
       sendPaymentProofSubmittedEmail(
         customerEmail,

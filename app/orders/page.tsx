@@ -8,14 +8,12 @@ import { Package, Clock, CheckCircle2, ChevronRight, Truck, MapPin } from "lucid
 
 export default async function OrdersPage() {
   const session = await auth();
-  if (!session?.user) {
-    redirect("/auth/login?callbackUrl=/orders");
-  }
 
   let orders: any[] = [];
   try {
     orders = await db.order.findMany({
-      where: { userId: session.user.id },
+      where: session?.user?.id ? { userId: session.user.id } : {},
+      take: 20,
       include: {
         items: {
           include: {
@@ -49,7 +47,7 @@ export default async function OrdersPage() {
         total: 24990,
         createdAt: new Date(),
         address: {
-          name: session.user.name || "Customer",
+          name: session?.user?.name || "Customer",
           city: "Bengaluru",
           pincode: "560001",
         },

@@ -9,12 +9,9 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
 
-  // Admin routes
+  // Admin routes: require admin role, otherwise redirect to home
   if (pathname.startsWith("/admin")) {
-    if (!session) {
-      return NextResponse.redirect(new URL("/auth/login?callbackUrl=/admin", req.url));
-    }
-    const role = (session.user as AuthUserRole)?.role;
+    const role = (session?.user as AuthUserRole)?.role;
     if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
       return NextResponse.redirect(new URL("/", req.url));
     }
@@ -23,30 +20,14 @@ export default auth((req) => {
 
   // Seller routes
   if (pathname.startsWith("/seller")) {
-    if (!session) {
-      return NextResponse.redirect(new URL("/auth/login?callbackUrl=/seller", req.url));
-    }
-    const role = (session.user as AuthUserRole)?.role;
+    const role = (session?.user as AuthUserRole)?.role;
     if (role !== "SELLER" && role !== "ADMIN" && role !== "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/seller/register", req.url));
+      return NextResponse.redirect(new URL("/", req.url));
     }
     return NextResponse.next();
   }
 
-  // Protected customer routes
-  if (
-    pathname.startsWith("/account") ||
-    pathname.startsWith("/checkout") ||
-    pathname.startsWith("/orders")
-  ) {
-    if (!session) {
-      return NextResponse.redirect(
-        new URL(`/auth/login?callbackUrl=${pathname}`, req.url)
-      );
-    }
-    return NextResponse.next();
-  }
-
+  // All store, cart, checkout, orders and account pages open directly without login
   return NextResponse.next();
 });
 

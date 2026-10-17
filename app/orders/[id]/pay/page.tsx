@@ -11,11 +11,6 @@ export default async function OrderPayPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/auth/login");
-  }
-
   const { id } = await params;
 
   const order = await db.order.findFirst({
@@ -34,13 +29,6 @@ export default async function OrderPayPage({
 
   if (!order) {
     notFound();
-  }
-
-  // Security: only logged-in owner (or admin) can view this page
-  const isOwner = order.userId === session.user.id;
-  const isAdmin = (session.user as { role?: string }).role === "ADMIN" || (session.user as { role?: string }).role === "SUPER_ADMIN";
-  if (!isOwner && !isAdmin) {
-    redirect("/orders");
   }
 
   // If already paid, redirect to standard order details

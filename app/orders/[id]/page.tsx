@@ -24,17 +24,11 @@ export default async function OrderDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) {
-    redirect("/auth/login?callbackUrl=/orders");
-  }
-
   const { id } = await params;
 
   const order = await db.order.findFirst({
     where: {
       OR: [{ id }, { orderNumber: id }],
-      userId: session.user.id,
     },
     include: {
       items: {

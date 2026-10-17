@@ -137,19 +137,23 @@ export default function CartPage() {
       return;
     }
 
-    if (!session?.user) {
-      toast.error("Please sign in to place your order");
-      router.push("/auth/login?callbackUrl=/cart");
+    if (!address.name?.trim()) {
+      toast.error("Please enter your name for delivery");
       return;
     }
 
-    if (!cashfreeEnabled) {
-      toast.error("Payment is temporarily unavailable. Please try again shortly.");
+    if (!address.phone?.trim()) {
+      toast.error("Please enter your mobile number for delivery updates");
       return;
     }
 
     if (!address.line1 || !address.city || !address.pincode) {
       toast.error("Please provide complete delivery address");
+      return;
+    }
+
+    if (!cashfreeEnabled) {
+      toast.error("Payment is temporarily unavailable. Please try again shortly.");
       return;
     }
 
@@ -169,14 +173,6 @@ export default function CartPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        // Handle session expiry
-        if (res.status === 401 || data.code === "SESSION_EXPIRED" || data.code === "UNAUTHORIZED" || data.code === "FOREIGN_KEY_VIOLATION") {
-          toast.error(data.message || "Your session expired, please sign in again");
-          router.push("/auth/login?callbackUrl=/cart&message=" + encodeURIComponent("Your session expired, please sign in again"));
-          return;
-        }
-
-        // Handle missing/unavailable products
         if (data.code === "ITEMS_UNAVAILABLE" || data.missingProductIds) {
           if (Array.isArray(data.missingProductIds)) {
             data.missingProductIds.forEach((id: string) => removeItem(id));

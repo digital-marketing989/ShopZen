@@ -263,7 +263,7 @@ export function Header() {
                     <User className="w-4 h-4" />
                   </div>
                   <span className="hidden md:block max-w-[90px] truncate">
-                    {session?.user?.name?.split(" ")[0] || "Sign In"}
+                    {session?.user?.name?.split(" ")[0] || "Account"}
                   </span>
                   <ChevronDown className="w-3.5 h-3.5 text-gray-500 hidden md:block" />
                 </button>
@@ -304,12 +304,15 @@ export function Header() {
                         </div>
                       </>
                     ) : (
-                      <div className="p-2 space-y-2">
-                        <Link href="/auth/login" className="block w-full text-center py-2.5 px-4 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition" onClick={() => setUserMenuOpen(false)}>
-                          Login
+                      <div className="space-y-1 text-sm p-1">
+                        <Link href="/orders" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50 font-medium" onClick={() => setUserMenuOpen(false)}>
+                          <Package className="w-4 h-4 text-blue-600" /> My Orders
                         </Link>
-                        <Link href="/auth/register" className="block w-full text-center py-2 px-4 border border-blue-600 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-50 transition" onClick={() => setUserMenuOpen(false)}>
-                          Create Account
+                        <Link href="/wishlist" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50 font-medium" onClick={() => setUserMenuOpen(false)}>
+                          <Heart className="w-4 h-4 text-rose-500" /> Wishlist
+                        </Link>
+                        <Link href="/cart" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50 font-medium" onClick={() => setUserMenuOpen(false)}>
+                          <ShoppingCart className="w-4 h-4 text-emerald-600" /> My Cart
                         </Link>
                       </div>
                     )}
@@ -571,18 +574,18 @@ export function Header() {
             ) : (
               <div className="flex items-center gap-2 w-full">
                 <Link
-                  href="/auth/login"
+                  href="/orders"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex-1 text-center py-2 bg-blue-600 text-white font-bold rounded-xl text-xs"
                 >
-                  Login
+                  My Orders
                 </Link>
                 <Link
-                  href="/auth/register"
+                  href="/wishlist"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex-1 text-center py-2 border border-blue-600 text-blue-600 font-bold rounded-xl text-xs"
                 >
-                  Register
+                  Wishlist
                 </Link>
               </div>
             )}
